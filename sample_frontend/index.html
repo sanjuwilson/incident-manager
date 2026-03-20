@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incident Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0f1117;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container { width: 100%; max-width: 480px; padding: 20px; }
+        .card {
+            background: #1a1d27;
+            border: 1px solid #2a2d3e;
+            border-radius: 12px;
+            padding: 36px;
+            text-align: center;
+        }
+        .logo { margin-bottom: 28px; }
+        .logo h1 { font-size: 22px; font-weight: 600; color: #fff; }
+        .logo p { font-size: 13px; color: #666; margin-top: 4px; }
+
+        .btn {
+            width: 100%; padding: 12px; border: none;
+            border-radius: 8px; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn-primary { background: #4f6ef7; color: #fff; }
+        .btn-primary:hover { background: #3d5ce0; }
+        .btn-danger {
+            background: #3d1a1a; color: #f87171;
+            border: 1px solid #5c2626; margin-top: 10px;
+        }
+        .btn-danger:hover { background: #5c2626; }
+
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid #2a2d3e; border-top-color: #4f6ef7;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: #666; font-size: 14px; }
+
+        .avatar {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, #4f6ef7, #8b5cf6);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: 700; color: #fff;
+            margin: 0 auto 20px;
+        }
+        .welcome-label { font-size: 13px; color: #666; margin-bottom: 6px; }
+        .welcome-name { font-size: 24px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+
+        .role-badge {
+            display: inline-block; padding: 4px 14px; border-radius: 20px;
+            font-size: 12px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; margin-bottom: 20px;
+        }
+        .role-admin { background: #2d1a4a; color: #c084fc; border: 1px solid #7c3aed; }
+        .role-user  { background: #1a2d4a; color: #60a5fa; border: 1px solid #3b82f6; }
+        .role-other { background: #1a2d2a; color: #34d399; border: 1px solid #10b981; }
+
+        /* Session status bar */
+        .status-bar {
+            background: #0f1117;
+            border: 1px solid #2a2d3e;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+        }
+        .status-item { text-align: center; }
+        .status-label { color: #555; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.4px; font-size: 10px; }
+        .status-value { font-weight: 600; }
+        .status-divider { width: 1px; height: 28px; background: #2a2d3e; }
+        .good    { color: #34d399; }
+        .warning { color: #f59e0b; }
+        .danger  { color: #f87171; }
+
+        /* Token progress */
+        .progress-wrap {
+            background: #0f1117; border: 1px solid #2a2d3e;
+            border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; text-align: left;
+        }
+        .progress-header {
+            display: flex; justify-content: space-between;
+            font-size: 10px; color: #555; text-transform: uppercase;
+            letter-spacing: 0.4px; margin-bottom: 6px;
+        }
+        .progress-bg { background: #2a2d3e; border-radius: 4px; height: 5px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 1s linear, background 0.3s; }
+
+        .info-grid {
+            display: grid; grid-template-columns: 1fr 1fr;
+            gap: 10px; margin-bottom: 16px; text-align: left;
+        }
+        .info-item {
+            background: #0f1117; border: 1px solid #2a2d3e;
+            border-radius: 8px; padding: 12px;
+        }
+        .info-label {
+            font-size: 11px; color: #555; text-transform: uppercase;
+            letter-spacing: 0.5px; margin-bottom: 4px;
+        }
+        .info-value { font-size: 13px; color: #ccc; font-weight: 500; word-break: break-all; }
+
+        .token-box {
+            background: #0f1117; border: 1px solid #2a2d3e;
+            border-radius: 8px; padding: 12px; margin-bottom: 16px;
+            text-align: left; cursor: pointer;
+        }
+        .token-box:hover { border-color: #4f6ef7; }
+        .token-preview { font-size: 11px; color: #4f6ef7; word-break: break-all; line-height: 1.5; }
+        .copy-hint { font-size: 11px; color: #444; margin-top: 4px; }
+        .copy-hint.copied { color: #22c55e; }
+
+        .refresh-tag {
+            font-size: 10px; color: #34d399; margin-top: 4px;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .refresh-tag.show { opacity: 1; }
+
+        .error-box {
+            background: #2d1a1a; border: 1px solid #5c2626;
+            border-radius: 8px; padding: 14px; color: #f87171;
+            font-size: 13px; margin-bottom: 16px; line-height: 1.6;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <div class="logo">
+            <h1>⚡ Incident Manager</h1>
+            <p>Keycloak Authentication</p>
+        </div>
+
+        <!-- Login -->
+        <div id="screen-login">
+            <p style="color:#666; font-size:14px; margin-bottom:24px;">
+                Sign in to access the incident management platform.
+            </p>
+            <button class="btn btn-primary" onclick="login()">Sign in with Keycloak</button>
+        </div>
+
+        <!-- Loading -->
+        <div id="screen-loading" class="hidden">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loading-text">Exchanging token...</div>
+        </div>
+
+        <!-- Error -->
+        <div id="screen-error" class="hidden">
+            <div class="error-box" id="error-message"></div>
+            <button class="btn btn-primary" onclick="login()">Try Again</button>
+        </div>
+
+        <!-- Welcome -->
+        <div id="screen-welcome" class="hidden">
+            <div class="avatar" id="avatar"></div>
+            <div class="welcome-label">Welcome back</div>
+            <div class="welcome-name" id="welcome-name"></div>
+            <div class="role-badge" id="role-badge"></div>
+
+            <!-- Live session status -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <div class="status-label">Token expires in</div>
+                    <div class="status-value good" id="token-ttl">5m 0s</div>
+                </div>
+                <div class="status-divider"></div>
+                <div class="status-item">
+                    <div class="status-label">Refreshes in</div>
+                    <div class="status-value good" id="refresh-in">4m 30s</div>
+                </div>
+                <div class="status-divider"></div>
+                <div class="status-item">
+                    <div class="status-label">Session</div>
+                    <div class="status-value good" id="session-age">0m 0s</div>
+                </div>
+            </div>
+
+            <!-- Token progress bar -->
+            <div class="progress-wrap">
+                <div class="progress-header">
+                    <span>Token Validity</span>
+                    <span id="progress-pct">100%</span>
+                </div>
+                <div class="progress-bg">
+                    <div class="progress-fill" id="progress-fill"
+                         style="width:100%; background:#34d399;"></div>
+                </div>
+                <div class="refresh-tag" id="refresh-tag">🔄 Token refreshed silently</div>
+            </div>
+
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">First Name</div>
+                    <div class="info-value" id="info-first"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Last Name</div>
+                    <div class="info-value" id="info-last"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Email</div>
+                    <div class="info-value" id="info-email"></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Username</div>
+                    <div class="info-value" id="info-username"></div>
+                </div>
+            </div>
+
+            <div class="token-box" onclick="copyToken()">
+                <div class="info-label">Access Token (click to copy)</div>
+                <div class="token-preview" id="token-preview"></div>
+                <div class="copy-hint" id="copy-hint">Click to copy full token</div>
+            </div>
+
+            <button class="btn btn-danger" onclick="logout()">Sign Out</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── CONFIG ───────────────────────────────────────────────
+    const KEYCLOAK_URL       = 'http://localhost:8080/realms/Incident-Manager';
+    const CLIENT_ID          = 'incident-manager';
+    const CLIENT_SECRET      = 'ad6EFvurp0BU9AB4GSvIOSdeM7CVelHy';
+    const REDIRECT_URI       = 'http://localhost:3000';
+    const REFRESH_BEFORE_SEC = 30; // refresh 30s before token expires
+    // ─────────────────────────────────────────────────────────
+
+    let accessToken    = null;
+    let refreshToken   = null;
+    let tokenExpiresAt = null;  // ms timestamp
+    let sessionStart   = null;  // ms timestamp
+    let refreshTimer   = null;  // setTimeout handle
+    let tickTimer      = null;  // setInterval handle
+
+    // ── BOOT ─────────────────────────────────────────────────
+    window.addEventListener('load', () => {
+        const params = new URLSearchParams(window.location.search);
+        const code   = params.get('code');
+        if (code) {
+            window.history.replaceState({}, document.title, '/');
+            show('loading');
+            exchangeCode(code);
+        } else {
+            show('login');
+        }
+    });
+
+    // ── LOGIN ────────────────────────────────────────────────
+    function login() {
+        window.location.href =
+            `${KEYCLOAK_URL}/protocol/openid-connect/auth`
+            + `?client_id=${encodeURIComponent(CLIENT_ID)}`
+            + `&response_type=code`
+            + `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
+            + `&scope=openid`;
+    }
+
+    // ── INITIAL CODE EXCHANGE ────────────────────────────────
+    async function exchangeCode(code) {
+        try {
+            const data = await postToToken({
+                grant_type:    'authorization_code',
+                client_id:     CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                code,
+                redirect_uri:  REDIRECT_URI
+            });
+
+            if (data.error) { showError(`${data.error}: ${data.error_description || ''}`); return; }
+
+            sessionStart = Date.now();
+            storeTokens(data);
+            renderWelcome(accessToken);
+
+        } catch (err) {
+            showError('Token exchange failed. Make sure Keycloak is running and Web Origins includes http://localhost:3000');
+        }
+    }
+
+    // ── SILENT REFRESH ───────────────────────────────────────
+    async function silentRefresh() {
+        console.log('[Auth] Silent refresh started...');
+        try {
+            const data = await postToToken({
+                grant_type:    'refresh_token',
+                client_id:     CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                refresh_token: refreshToken
+            });
+
+            if (data.error) {
+                // Refresh token expired or invalid — session is dead
+                console.warn('[Auth] Refresh failed:', data.error);
+                await logout(true);
+                return;
+            }
+
+            storeTokens(data);
+            showRefreshTag();
+            console.log('[Auth] Token silently refreshed ✓');
+
+        } catch (err) {
+            console.error('[Auth] Refresh request failed', err);
+            await logout(true);
+        }
+    }
+
+    // ── STORE TOKENS + SCHEDULE NEXT REFRESH ────────────────
+    function storeTokens(data) {
+        accessToken  = data.access_token;
+        refreshToken = data.refresh_token || refreshToken; // keep old if not rotated
+
+        const expiresInSec = data.expires_in || 300;
+        tokenExpiresAt     = Date.now() + expiresInSec * 1000;
+
+        // Update token preview if already on welcome screen
+        const el = document.getElementById('token-preview');
+        if (el) el.textContent = accessToken.substring(0, 80) + '...';
+
+        // Schedule next refresh REFRESH_BEFORE_SEC seconds before expiry
+        clearTimeout(refreshTimer);
+        const refreshInMs = Math.max((expiresInSec - REFRESH_BEFORE_SEC) * 1000, 5000);
+        refreshTimer = setTimeout(silentRefresh, refreshInMs);
+
+        console.log(`[Auth] Next refresh in ${Math.round(refreshInMs / 1000)}s`);
+    }
+
+    // ── TICK (updates UI every second) ──────────────────────
+    function startTick() {
+        clearInterval(tickTimer);
+        tickTimer = setInterval(() => {
+            if (!tokenExpiresAt) return;
+
+            const now      = Date.now();
+            const tokenMs  = Math.max(tokenExpiresAt - now, 0);
+            const totalMs  = 300 * 1000; // 5 min reference
+            const pct      = Math.round((tokenMs / totalMs) * 100);
+
+            // Next refresh countdown
+            const nextRefreshMs = Math.max(
+                tokenExpiresAt - (REFRESH_BEFORE_SEC * 1000) - now, 0
+            );
+
+            // Session age
+            const sessionMs = sessionStart ? now - sessionStart : 0;
+
+            // Token TTL display
+            const ttlEl = document.getElementById('token-ttl');
+            ttlEl.textContent = formatMs(tokenMs);
+            ttlEl.className   = 'status-value ' + colorClass(tokenMs, 60000, 30000);
+
+            // Refresh countdown
+            const refEl = document.getElementById('refresh-in');
+            refEl.textContent = nextRefreshMs > 0 ? formatMs(nextRefreshMs) : 'Refreshing...';
+            refEl.className   = 'status-value ' + colorClass(nextRefreshMs, 60000, 15000);
+
+            // Session age (just informational)
+            document.getElementById('session-age').textContent = formatMs(sessionMs);
+
+            // Progress bar
+            const fill = document.getElementById('progress-fill');
+            fill.style.width      = Math.min(pct, 100) + '%';
+            fill.style.background = pct > 50 ? '#34d399' : pct > 20 ? '#f59e0b' : '#f87171';
+            document.getElementById('progress-pct').textContent = Math.min(pct, 100) + '%';
+
+        }, 1000);
+    }
+
+    // ── LOGOUT ───────────────────────────────────────────────
+    async function logout(auto = false) {
+        clearTimeout(refreshTimer);
+        clearInterval(tickTimer);
+
+        // Invalidate Keycloak session server-side
+        if (refreshToken) {
+            try {
+                await postToToken({
+                    client_id:     CLIENT_ID,
+                    client_secret: CLIENT_SECRET,
+                    refresh_token: refreshToken
+                }, 'logout');
+                console.log('[Auth] Keycloak session invalidated');
+            } catch (e) {
+                console.warn('[Auth] Could not reach Keycloak logout endpoint');
+            }
+        }
+
+        accessToken    = null;
+        refreshToken   = null;
+        tokenExpiresAt = null;
+        sessionStart   = null;
+
+        if (auto) {
+            showError('Your session expired. Please sign in again.');
+        } else {
+            show('login');
+        }
+    }
+
+    // ── RENDER WELCOME ───────────────────────────────────────
+    function renderWelcome(token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+
+        const firstName = payload.given_name         || payload.preferred_username || '';
+        const lastName  = payload.family_name        || '';
+        const email     = payload.email              || '-';
+        const username  = payload.preferred_username || '-';
+
+        const realmRoles = payload.realm_access?.roles || [];
+        const IGNORED    = ['default-roles-incident-manager', 'offline_access', 'uma_authorization'];
+
+        let role = 'USER', badgeClass = 'role-user';
+        if (realmRoles.includes('admin')) {
+            role = 'ADMIN'; badgeClass = 'role-admin';
+        } else {
+            const custom = realmRoles.find(r => !IGNORED.includes(r));
+            if (custom) { role = custom.toUpperCase(); badgeClass = 'role-other'; }
+        }
+
+        document.getElementById('avatar').textContent =
+            ((firstName[0] || '') + (lastName[0] || '')).toUpperCase() || '?';
+        document.getElementById('welcome-name').textContent = `${firstName} ${lastName}`.trim();
+
+        const badge = document.getElementById('role-badge');
+        badge.textContent = role;
+        badge.className   = `role-badge ${badgeClass}`;
+
+        document.getElementById('info-first').textContent    = firstName || '-';
+        document.getElementById('info-last').textContent     = lastName  || '-';
+        document.getElementById('info-email').textContent    = email;
+        document.getElementById('info-username').textContent = username;
+        document.getElementById('token-preview').textContent = token.substring(0, 80) + '...';
+
+        show('welcome');
+        startTick();
+    }
+
+    // ── HELPERS ──────────────────────────────────────────────
+    async function postToToken(params, endpoint = 'token') {
+        const res = await fetch(`${KEYCLOAK_URL}/protocol/openid-connect/${endpoint}`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body:    new URLSearchParams(params)
+        });
+        return res.json();
+    }
+
+    function showRefreshTag() {
+        const tag = document.getElementById('refresh-tag');
+        tag.classList.add('show');
+        setTimeout(() => tag.classList.remove('show'), 3000);
+    }
+
+    function formatMs(ms) {
+        if (ms <= 0) return '0s';
+        const s = Math.floor(ms / 1000);
+        const m = Math.floor(s / 60);
+        const h = Math.floor(m / 60);
+        if (h > 0)  return `${h}h ${m % 60}m`;
+        if (m > 0)  return `${m}m ${s % 60}s`;
+        return `${s}s`;
+    }
+
+    function colorClass(ms, warnThreshold, dangerThreshold) {
+        if (ms < dangerThreshold)  return 'danger';
+        if (ms < warnThreshold)    return 'warning';
+        return 'good';
+    }
+
+    function copyToken() {
+        if (!accessToken) return;
+        navigator.clipboard.writeText(accessToken).then(() => {
+            const hint = document.getElementById('copy-hint');
+            hint.textContent = '✓ Copied!';
+            hint.classList.add('copied');
+            setTimeout(() => {
+                hint.textContent = 'Click to copy full token';
+                hint.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    function showError(msg) {
+        document.getElementById('error-message').textContent = msg;
+        show('error');
+    }
+
+    function show(screen) {
+        ['login','loading','error','welcome'].forEach(s =>
+            document.getElementById(`screen-${s}`).classList.add('hidden')
+        );
+        document.getElementById(`screen-${screen}`).classList.remove('hidden');
+    }
+</script>
+</body>
+</html>

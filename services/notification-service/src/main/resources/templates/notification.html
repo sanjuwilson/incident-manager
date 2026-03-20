@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${title}">Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .header {
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .header h2 {
+            margin: 0;
+            color: #333;
+        }
+        .content p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #555;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #d32f2f; /* red for critical */
+        }
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h2 th:text="${title}">Notification Title</h2>
+    </div>
+    <div class="content">
+        <p>Hi <span th:text="${recipientName}">User</span>,</p>
+        <p>You have a new notification from the <span th:text="${sourceService}">Service</span>.</p>
+        <p>
+            <span>Incident ID:</span> <span th:text="${incidentId}">12345</span><br>
+            <span>Severity:</span> <span th:text="${severity}">LOW</span><br>
+            <span>Status:</span> <span th:text="${incidentStatus}">OPEN</span><br>
+            <span>Failure Reason:</span> <span th:text="${failureReason}">N/A</span>
+        </p>
+        <p class="highlight" th:if="${failureReason != null}">Action Required: Issue detected!</p>
+        <p>Sent at: <span th:text="${sentAt}">--</span></p>
+    </div>
+    <div class="footer">
+        <p>This is an automated message. Please do not reply.</p>
+    </div>
+</div>
+</body>
+</html>

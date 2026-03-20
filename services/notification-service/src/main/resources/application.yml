@@ -1,0 +1,50 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8080/realms/Incident-Manager
+  mail:
+    host: localhost
+    port: 2346
+    username: sanju
+    password: sanju
+    properties:
+      mail:
+        smtp: "*"
+      auth: true
+      starttls:
+        enabled: true
+      connectiontimeout: 5000
+      timeout: 3000
+      writetimeout: 5000
+
+  datasource:
+    url: jdbc:postgresql://localhost:3456/notification
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: pass
+  jpa:
+    hibernate:
+      ddl-auto: update
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+  application:
+    name: notification-service
+  kafka:
+    consumer:
+      group-id: group1
+      bootstrap-servers: localhost:9092
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+server:
+  port: 2345
+
+jwt:
+  auth:
+    convertor:
+      resource-id: incident-manager
+      principle-attribute: preferred_username
+
