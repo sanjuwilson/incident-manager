@@ -3,6 +3,7 @@ name: Incident Service CI
 on:
   push:
     branches: [ "actions" ]
+
   pull_request:
     branches: [ "actions" ]
 
@@ -28,7 +29,9 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Run Unit Tests
+        working-directory: services/incident-service
         run: mvn clean test
 
       - name: Verify Multi-Stage Docker Build
+        working-directory: services/incident-service
         run: docker build -t incident-service:${{ github.sha }} .
