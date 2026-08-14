@@ -2,9 +2,9 @@ name: Incident Service CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "actions" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "actions" ]
 
 jobs:
   ci-build:
