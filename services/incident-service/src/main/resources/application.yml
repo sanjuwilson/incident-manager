@@ -1,41 +1,78 @@
 spring:
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
+    baseline-version: ${FLYWAY_BASELINE_VERSION:0}
+  application:
+    name: incident-service
+
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/Incident-Manager
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
+
   datasource:
-    url: jdbc:postgresql://localhost:5432/incident
+    url: ${DB_URL}
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: pass
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO:update}
     database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
-  application:
-    name: incident-service
+    show-sql: ${JPA_SHOW_SQL:false}
+
   kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
     producer:
-      bootstrap-servers: localhost:9092
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.trusted.packages: '*'
+        spring.json.trusted.packages: "*"
+
     consumer:
-      group-id: group1
-      bootstrap-servers: localhost:9092
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:group1}
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
-        spring.json.trusted.packages: '*'
+        spring.json.trusted.packages: "com.manage.incident_service.failures"
+        spring.json.value.default.type: "com.manage.incident_service.failures.FailureRecord"
+        spring.json.use.type.headers: false
+
 server:
-  port: 6567
+  port: ${SERVER_PORT:6567}
 
 jwt:
   auth:
-    convertor:
-      resource-id: incident-manager
-      principle-attribute: preferred_username
+    converter:
+      principal-attribute: ${JWT_PRINCIPAL_ATTRIBUTE:preferred_username}
 
+otel:
+  service:
+    name: ${OTEL_SERVICE_NAME}
+  traces:
+    exporter: otlp
+  metrics:
+    exporter: none
+  logs:
+    exporter: none
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}
+      protocol: ${OTEL_EXPORTER_OTLP_PROTOCOL:http/protobuf}
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS}
+logging:
+  file:
+    name: ${LOG_FILE_PATH}
+  level:
+    root: INFO

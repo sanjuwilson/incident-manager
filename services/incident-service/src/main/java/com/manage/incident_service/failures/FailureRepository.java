@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface FailureRepository extends JpaRepository<FailureEvents,Long> {
     int countAllByFailureTypeAndOccurredAtBetweenAndSourceService(FailureType failureType, Instant occurredAt, Instant occurredAt2,String service);
+
+    boolean existsByCorrelationId(String s);
 }

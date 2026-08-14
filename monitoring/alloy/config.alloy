@@ -1,0 +1,25 @@
+local.file_match "spring_logs" {
+  path_targets = [
+    {
+      "__path__" = "/var/log/incident-manager/incident-service/*.log",
+      "job"      = "springboot",
+      "service"  = "incident-service",
+    },
+    {
+      "__path__" = "/var/log/incident-manager/notification-service/*.log",
+      "job"      = "springboot",
+      "service"  = "notification-service",
+    },
+  ]
+}
+
+loki.source.file "spring_logs" {
+  targets    = local.file_match.spring_logs.targets
+  forward_to = [loki.write.local_loki.receiver]
+}
+
+loki.write "local_loki" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

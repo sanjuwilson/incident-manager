@@ -1,50 +1,73 @@
 spring:
+  application:
+    name: notification-service
+
   security:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8080/realms/Incident-Manager
+          issuer-uri: ${KEYCLOAK_ISSUER_URI}
+
+  datasource:
+    url: ${DB_URL}
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:create}
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: ${JPA_SHOW_SQL:false}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:notification-service-group}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+
   mail:
-    host: localhost
-    port: 2346
-    username: sanju
-    password: sanju
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:2346}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp: "*"
       auth: true
       starttls:
-        enabled: true
-      connectiontimeout: 5000
-      timeout: 3000
-      writetimeout: 5000
+        enable: true
 
-  datasource:
-    url: jdbc:postgresql://localhost:3456/notification
-    driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: pass
-  jpa:
-    hibernate:
-      ddl-auto: update
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
-  application:
-    name: notification-service
-  kafka:
-    consumer:
-      group-id: group1
-      bootstrap-servers: localhost:9092
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
-      properties:
-        spring.json.trusted.packages: '*'
 server:
-  port: 2345
+  port: ${SERVER_PORT:2345}
 
 jwt:
   auth:
-    convertor:
-      resource-id: incident-manager
-      principle-attribute: preferred_username
+    converter:
+      principal-attribute: ${JWT_PRINCIPAL_ATTRIBUTE:preferred_username}
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: ${ACTUATOR_ENDPOINTS:health,info}
+
+otel:
+  service:
+    name: ${OTEL_SERVICE_NAME}
+  traces:
+    exporter: console
+  metrics:
+    exporter: none
+  logs:
+    exporter: none
+
+logging:
+  file:
+    name: ${LOG_FILE_PATH}
+  level:
+    root: INFO

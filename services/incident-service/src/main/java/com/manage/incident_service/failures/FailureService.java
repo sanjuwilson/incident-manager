@@ -7,6 +7,7 @@ import com.manage.incident_service.incidents.IncidentStatus;
 import com.manage.incident_service.kafka.producer.ProduceNotification;
 import com.manage.incident_service.rules.IncidentRule;
 import com.manage.incident_service.rules.IncidentRuleService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,8 +24,14 @@ public class FailureService {
     private final FailureRepository repository;
     private final IncidentRuleService incidentRuleService;
     private final IncidentService incidentService;
-    public void save(FailureRecord record){
-        FailureEvents event=repository.save(FailureEvents.builder()
+    @Transactional
+    public void save(FailureRecord record) {
+        if (repository.existsByCorrelationId(record.correlationId())) {
+            log.info("Duplicate failure event ignored. correlationId={}", record.correlationId());
+            return;
+        }
+
+        FailureEvents event = repository.save(FailureEvents.builder()
                 .sourceService(record.sourceService())
                 .failureType(record.failureType())
                 .operation(record.operation())
@@ -32,6 +39,7 @@ public class FailureService {
                 .occurredAt(record.occurredAt())
                 .correlationId(record.correlationId())
                 .build());
+
         applyRules(event);
     }
 
