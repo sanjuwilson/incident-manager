@@ -1,37 +1,139 @@
+# Name shown in the GitHub Actions interface
 name: Incident Service CI
 
+# Determine when this workflow runs
 on:
+
+  # Run the workflow when code is pushed to the actions branch
   push:
     branches: [ "actions" ]
 
+  # Run the workflow when a PR targets the actions branch
   pull_request:
     branches: [ "actions" ]
 
+
+# Permissions given to the GitHub Actions workflow itself
+permissions:
+
+  # Allows GitHub Actions to request an OIDC identity token
+  # which AWS will use to authenticate the workflow.
+  id-token: write
+
+  # Allows the workflow to read the repository contents.
+  contents: read
+
+
+# Jobs are the actual tasks GitHub will execute
 jobs:
+
+  # Name of our job
   ci-build:
+
+    # GitHub creates a temporary Ubuntu virtual machine
+    # and runs this job inside it.
     runs-on: ubuntu-latest
 
+    # Individual steps executed in order
     steps:
+
+      # Download the repository onto the GitHub runner
       - name: Checkout Code
         uses: actions/checkout@v4
 
+
+      # Install/configure Java 17 on the runner
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
 
+
+      # Cache Maven dependencies so future runs don't have
+      # to download the same dependencies again.
       - name: Cache Maven Dependencies
         uses: actions/cache@v4
         with:
           path: ~/.m2/repository
+
+          # Create a cache key based on the OS and pom.xml.
+          # If the pom.xml changes, Maven dependencies may need
+          # to be downloaded again.
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+
+          # If the exact cache doesn't exist, try an older
+          # Maven cache for the same operating system.
           restore-keys: ${{ runner.os }}-m2
 
+
+      # Run the unit tests
       - name: Run Unit Tests
         working-directory: services/incident-service
         run: mvn clean test
 
-      - name: Verify Multi-Stage Docker Build
+
+      # Build the Docker image using your multi-stage Dockerfile.
+      #
+      # The image is tagged using the Git commit SHA.
+      #
+      # Example:
+      # incident-service:a82f19c7
+      #
+      # At this point the image exists only on the temporary
+      # GitHub Actions runner.
+      - name: Build Docker Image
         working-directory: services/incident-service
         run: docker build -t incident-service:${{ github.sha }} .
+
+
+      # Authenticate GitHub Actions with AWS using GitHub OIDC.
+      #
+      # GitHub requests an OIDC token.
+      # AWS verifies the token against the IAM trust policy.
+      # AWS then gives the workflow temporary credentials
+      # for the IAM role.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::679857345965:role/IncidentServiceGitHubActionsRole
+          aws-region: us-east-2
+
+
+      # Log the Docker client into Amazon ECR.
+      #
+      # The temporary AWS credentials obtained above are used
+      # to authenticate with ECR.
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+
+      # Give our Docker image its ECR name and push it.
+      - name: Tag and Push Docker Image
+        working-directory: services/incident-service
+
+        # Variables used by the shell commands below.
+        env:
+          # ECR registry address returned by the login step.
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+
+          # Our ECR repository name.
+          REPOSITORY: incident-service
+
+          # Git commit SHA used as the Docker image tag.
+          IMAGE_TAG: ${{ github.sha }}
+
+        run: |
+
+          # Give the locally-built image its ECR name.
+          #
+          # Example:
+          # incident-service:a82f19c7
+          #
+          # becomes:
+          # 679857345965.dkr.ecr.us-east-2.amazonaws.com/incident-service:a82f19c7
+          docker tag incident-service:${IMAGE_TAG} ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
+
+          # Upload the image to Amazon ECR.
+          docker push ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
