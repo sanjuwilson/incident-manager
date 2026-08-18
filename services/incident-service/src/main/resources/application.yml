@@ -73,6 +73,6 @@ management:
         include: ${ACTUATOR_ENDPOINTS}
 logging:
   file:
-    name: ${LOG_FILE_PATH}
+    name: ${LOG_FILE_PATH:}
   level:
     root: INFO
