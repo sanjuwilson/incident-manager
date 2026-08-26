@@ -98,7 +98,11 @@ public class FailureService {
         }
 
     }
-    private void sendNotification(IncidentNotification incidentNotification){
-        produceNotification.sendIncidentNotification(incidentNotification);
+    private void sendNotification(IncidentNotification incidentNotification) {
+        try {
+            produceNotification.sendIncidentNotification(incidentNotification);
+        } catch (Exception e) {
+            log.error("Skipping Kafka notification due to connection error: {}", e.getMessage());
+        }
     }
 }
