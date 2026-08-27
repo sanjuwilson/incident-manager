@@ -137,3 +137,94 @@ jobs:
 
           # Upload the image to Amazon ECR.
           docker push ${REGISTRY}/${REPOSITORY}:${IMAGE_TAG}
+
+
+      # Pull the currently registered ECS task definition from AWS.
+      #
+      # This assumes that the task definition already exists in ECS.
+      #
+      # For example:
+      #
+      # incident-servicev2:12
+      #
+      # AWS returns the configuration of that task definition,
+      # including things such as:
+      #
+      # - CPU
+      # - Memory
+      # - Port mappings
+      # - Environment variables
+      # - Secrets
+      # - IAM roles
+      # - Logging configuration
+      # - Health checks
+      #
+      # The result is saved as active-task-def.json on the
+      # temporary GitHub Actions runner.
+      - name: Download Active Task Definition
+        run: |
+
+          aws ecs describe-task-definition \
+            --task-definition incident-servicev2 \
+            --query taskDefinition \
+            > active-task-def.json
+
+
+      # Replace the Docker image inside the task definition.
+      #
+      # It does NOT create a completely new task definition
+      # configuration from scratch.
+      #
+      # Instead, it takes the existing task definition and
+      # changes the Main container's image to the image we
+      # just pushed to ECR.
+      #
+      # Example:
+      #
+      # OLD:
+      # incident-service:OLD_SHA
+      #
+      # NEW:
+      # incident-service:CURRENT_GITHUB_SHA
+      #
+      # Everything else in the task definition remains the same.
+      - name: Render Updated Image Tag
+        id: render-task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: active-task-def.json
+          container-name: Main
+          image: ${{ steps.login-ecr.outputs.registry }}/incident-service:${{ github.sha }}
+
+
+      # Deploy the updated task definition to ECS.
+      #
+      # This action:
+      #
+      # 1. Registers the modified task definition as a new revision.
+      #
+      # 2. Updates the ECS service so that it uses the new revision.
+      #
+      # 3. ECS starts new tasks using the new Docker image.
+      #
+      # 4. ECS gradually replaces the old tasks with the new ones
+      #    according to the service's deployment configuration.
+      #
+      # 5. GitHub Actions waits until ECS reports that the service
+      #    has reached a stable state.
+      - name: Deploy to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+
+          # The task definition produced by the previous step.
+          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
+
+          # The ECS service that should receive the deployment.
+          service: incident-servicev2withpostgres
+
+          # The ECS cluster containing that service.
+          cluster: incident-manager-cluster
+
+          # Do not finish the GitHub Actions job until ECS reports
+          # that the deployment has become stable.
+          wait-for-service-stability: true
